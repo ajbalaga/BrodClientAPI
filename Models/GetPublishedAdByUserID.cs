@@ -2,6 +2,6 @@
 {
     public class GetPublishedAdByUserID
     {
-        public string UserID { get; set; }
+        public string UserId { get; set; }
     }
 }

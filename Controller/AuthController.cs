@@ -31,14 +31,21 @@ namespace BrodClientAPI.Controller
             [HttpPost("login")]
             public IActionResult Login([FromBody] LoginInput login)
             {
-                var allUsers = _context.User.Find(_ => true).ToList();
-                var user = _context.User.Find(u => u.Email == login.Email && u.Password == login.Password).FirstOrDefault();
+                try
+                {
+                    var allUsers = _context.User.Find(_ => true).ToList();
+                    var user = _context.User.Find(u => u.Email == login.Email && u.Password == login.Password).FirstOrDefault();
 
-                if (user == null)
-                    return Unauthorized();
+                    if (user == null)
+                        return Unauthorized();
 
-                var token = GenerateJwtToken(user);
-                return Ok(new { token, userId = user._id });
+                    var token = GenerateJwtToken(user);
+                    return Ok(new { token, userId = user._id });
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                }
             }
             private string GenerateJwtToken(User user)
                 {
@@ -69,12 +76,12 @@ namespace BrodClientAPI.Controller
             [HttpPost("signup")]
             public async Task<IActionResult> Signup([FromBody] User userSignupDto)
             {
-                //var newUser = userSignupDto.User;
-
+            try
+            {
                 // Check if the user already exists
                 var existingUser = _context.User.Find(u => u.Email == userSignupDto.Email).FirstOrDefault();
                 if (existingUser != null)
-                    return BadRequest("User already exists");            
+                    return BadRequest("User already exists");
 
                 // Add the new user to the database
                 _context.User.InsertOne(userSignupDto);
@@ -82,6 +89,11 @@ namespace BrodClientAPI.Controller
                 // Return a success response
                 return Ok(new { message = "Signup successful" });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+            }
+        }
 
             private string HashPassword(string password)
             {
