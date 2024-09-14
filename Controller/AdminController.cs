@@ -42,7 +42,7 @@ namespace BrodClientAPI.Controller
 
         // Fetch tradie details by ID
         [HttpGet("tradie/")]
-        public IActionResult GetTradieById([FromBody] GetTradieProfile getTradieProfile)
+        public IActionResult GetTradieById([FromBody] OwnProfile getTradieProfile)
         {
             var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Tradie").FirstOrDefault();
             if (tradie == null)

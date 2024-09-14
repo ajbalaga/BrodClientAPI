@@ -6,7 +6,7 @@ using MongoDB.Driver;
 
 namespace BrodClientAPI.Controller
 {
-    [Authorize(Policy = "UserPolicy")]
+    [Authorize(Policy = "ClientPolicy")]
     [ApiController]
     [Route("api/[controller]")]
     public class ClientController : ControllerBase
@@ -18,16 +18,15 @@ namespace BrodClientAPI.Controller
             _context = context;
         }
 
-        [HttpGet("profile")]
-        public IActionResult GetProfile()
+        [HttpGet("myDetails")]
+        public IActionResult GetClientById([FromBody] OwnProfile getTradieProfile)
         {
-            var username = User.Identity.Name;
-            var user = _context.User.Find(u => u.Username == username).FirstOrDefault();
-            if (user == null)
+            var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Client").FirstOrDefault();
+            if (tradie == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Client not found" });
             }
-            return Ok(user);
+            return Ok(tradie);
         }
 
         [HttpPut("update-profile")]
@@ -42,33 +41,45 @@ namespace BrodClientAPI.Controller
             var updateDefinitions = new List<UpdateDefinition<User>>();
 
             // Update fields only if they are provided in clientProfile
-            if (!string.IsNullOrEmpty(clientProfile.Username) && clientProfile.Username != clientProfile.Username)
+            if (!string.IsNullOrEmpty(clientProfile.Username) && client.Username != clientProfile.Username)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Username, clientProfile.Username));
             }
-            if (!string.IsNullOrEmpty(clientProfile.Email) && clientProfile.Email != clientProfile.Email)
+            if (!string.IsNullOrEmpty(clientProfile.FirstName) && client.FirstName != clientProfile.FirstName)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.FirstName, clientProfile.FirstName));
+            }
+            if (!string.IsNullOrEmpty(clientProfile.LastName) && client.LastName != clientProfile.LastName)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.LastName, clientProfile.LastName));
+            }
+            if (!string.IsNullOrEmpty(clientProfile.Username) && client.Username != clientProfile.Username)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.Username, clientProfile.Username));
+            }
+            if (!string.IsNullOrEmpty(clientProfile.Email) && client.Email != clientProfile.Email)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Email, clientProfile.Email));
             }
-            if (!string.IsNullOrEmpty(clientProfile.ContactNumber) && clientProfile.ContactNumber != clientProfile.ContactNumber)
+            if (!string.IsNullOrEmpty(clientProfile.ContactNumber) && client.ContactNumber != clientProfile.ContactNumber)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.ContactNumber, clientProfile.ContactNumber));
             }
-            if (!string.IsNullOrEmpty(clientProfile.State) && clientProfile.State != clientProfile.State)
+            if (!string.IsNullOrEmpty(clientProfile.State) && client.State != clientProfile.State)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.State, clientProfile.State));
             }
-            if (!string.IsNullOrEmpty(clientProfile.City) && clientProfile.City != clientProfile.City)
+            if (!string.IsNullOrEmpty(clientProfile.City) && client.City != clientProfile.City)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.City, clientProfile.City));
             }
-            if (!string.IsNullOrEmpty(clientProfile.PostalCode) && clientProfile.PostalCode != clientProfile.PostalCode)
+            if (!string.IsNullOrEmpty(clientProfile.PostalCode) && client.PostalCode != clientProfile.PostalCode)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.PostalCode, clientProfile.PostalCode));
             }
 
             // Update Profile Picture if provided
-            if (!string.IsNullOrEmpty(clientProfile.ProfilePicture) && clientProfile.ProfilePicture != clientProfile.ProfilePicture)
+            if (!string.IsNullOrEmpty(clientProfile.ProfilePicture) && client.ProfilePicture != clientProfile.ProfilePicture)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.ProfilePicture, clientProfile.ProfilePicture));
             }
@@ -90,7 +101,15 @@ namespace BrodClientAPI.Controller
                 return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
             }
 
-            return Ok(new { message = "Tradie profile updated successfully" });
+            return Ok(new { message = "Client profile updated successfully" });
+        }
+
+
+        [HttpGet("allServices")]
+        public IActionResult GetAllServices()
+        {
+            var services = _context.Services.Find(services => true).ToList(); // Fetch all users from MongoDB
+            return Ok(services);
         }
     }
 }

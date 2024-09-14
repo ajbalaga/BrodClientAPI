@@ -1,6 +1,6 @@
 ﻿namespace BrodClientAPI.Models
 {
-    public class GetTradieProfile
+    public class OwnProfile
     {
         public string ID { get; set; }
     }
