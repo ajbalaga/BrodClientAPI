@@ -61,7 +61,6 @@ namespace BrodClientAPI.Controller
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.AvailabilityToWork, tradieProfile.AvailabilityToWork));
             }
-
             if (!string.IsNullOrEmpty(tradieProfile.Email) && tradieProfile.Email != tradie.Email)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Email, tradieProfile.Email));
@@ -97,6 +96,10 @@ namespace BrodClientAPI.Controller
             if (!string.IsNullOrEmpty(tradieProfile.PostalCode) && tradieProfile.PostalCode != tradie.PostalCode)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.PostalCode, tradieProfile.PostalCode));
+            }
+            if (!string.IsNullOrEmpty(tradieProfile.ContactNumber) && tradieProfile.ContactNumber != tradieProfile.ContactNumber)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.ContactNumber, tradieProfile.ContactNumber));
             }
 
             // Update Profile Picture if provided
@@ -242,6 +245,7 @@ namespace BrodClientAPI.Controller
 
             return Ok(publishedJobPost);
         }
+
         [HttpGet("unpublishedAds")]
         public IActionResult GetUnpublishedAds([FromBody] GetPublishedAd getunPublishedAd)
         {
@@ -263,6 +267,107 @@ namespace BrodClientAPI.Controller
             _context.Services.UpdateOne(service => service._id == updateJobAdsIsActive.JobID, updateDefinition);
 
             return Ok(new { message = "Job Ad successfully updated" });
+        }
+
+        [HttpGet("job-ad-getDetails-byServiceID")]
+        public IActionResult GetJobDetailsByServiceId([FromBody] GetJobDetailsByServiceId getJobDetails)
+        {
+            var service = _context.Services.Find(service => service._id == getJobDetails.ServiceID).FirstOrDefault();
+            if (service == null)
+            {
+                return NotFound(new { message = "Job post not found" });
+            }
+            return Ok(service);
+        }
+
+        [HttpPut("update-job-ad-Details")]
+        public IActionResult UpdateJobAdDetails([FromBody] Services updatedJobPost)
+        {
+            var service = _context.Services.Find(service => service._id == updatedJobPost._id).FirstOrDefault();
+            if (service == null)
+            {
+                return NotFound(new { message = "Job post ad not found" });
+            }
+
+            var updateDefinitions = new List<UpdateDefinition<Services>>();
+
+            // Update only the non-null values from the updatedJobPost
+
+            if (!string.IsNullOrEmpty(updatedJobPost.BusinessPostcode))
+            {
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.BusinessPostcode, updatedJobPost.BusinessPostcode));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.JobCategory))
+            {
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.JobCategory, updatedJobPost.JobCategory));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.JobAdTitle))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.JobAdTitle, updatedJobPost.JobAdTitle));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.DescriptionOfService))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.DescriptionOfService, updatedJobPost.DescriptionOfService));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.PricingOption))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.PricingOption, updatedJobPost.PricingOption));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.PricingStartsAt))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.PricingStartsAt, updatedJobPost.PricingStartsAt));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.Currency))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.Currency, updatedJobPost.Currency));
+            }
+
+            if (!string.IsNullOrEmpty(updatedJobPost.ThumbnailImage))
+            {
+
+                updateDefinitions.Add(Builders<Services>.Update.Set(u => u.ThumbnailImage, updatedJobPost.ThumbnailImage));
+            }
+
+            if (updatedJobPost.ProjectGallery != null)
+            {
+                var currentProjectGallery = service.ProjectGallery ?? new List<string>();
+
+                if (!updatedJobPost.ProjectGallery.SequenceEqual(currentProjectGallery))
+                {
+                    updateDefinitions.Add(Builders<Services>.Update.Set(u => u.ProjectGallery, updatedJobPost.ProjectGallery));
+                }
+            }
+
+
+            if (updateDefinitions.Count == 0)
+            {
+                return BadRequest(new { message = "No valid fields to update" });
+            }
+
+            try
+            {
+                var updateDefinition = Builders<Services>.Update.Combine(updateDefinitions);
+                var filter = Builders<Services>.Filter.Eq(u => u._id, updatedJobPost._id);
+
+                _context.Services.UpdateOne(filter, updateDefinition);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
+            }
+
+            return Ok(new { message = "Job post ad updated successfully" });
         }
 
     }
