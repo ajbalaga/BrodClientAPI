@@ -31,18 +31,16 @@ namespace BrodClientAPI.Controller
         }
 
         [HttpPut("update-profile")]
-        public IActionResult UpdateProfile([FromBody] User user)
+        public IActionResult UpdateProfile([FromBody] User clientProfile)
         {
-            var existingUser = _context.User.Find(u => u.Username == User.Identity.Name).FirstOrDefault();
-            if (existingUser == null)
+            var client = _context.User.Find(user => user._id == clientProfile._id && user.Role == "Client").FirstOrDefault();
+            if (client == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Client not found" });
             }
 
-            var update = Builders<User>.Update.Set(u => u.Email, user.Email);
-            _context.User.UpdateOne(u => u.Username == existingUser.Username, update);
+            var updateDefinitions = new List<UpdateDefinition<User>>();
 
-            return Ok(existingUser);
             // Update fields only if they are provided in clientProfile
             if (!string.IsNullOrEmpty(clientProfile.Username) && clientProfile.Username != clientProfile.Username)
             {
@@ -70,7 +68,7 @@ namespace BrodClientAPI.Controller
             }
 
             // Update Profile Picture if provided
-            if (!string.IsNullOrEmpty(clientProfile.ProfilePicture) && clientProfile.ProfilePicture != clientDetails.ProfilePicture)
+            if (!string.IsNullOrEmpty(clientProfile.ProfilePicture) && clientProfile.ProfilePicture != clientProfile.ProfilePicture)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.ProfilePicture, clientProfile.ProfilePicture));
             }
