@@ -20,4 +20,8 @@ namespace BrodClientAPI.Models
         public List<string> ProjectGallery { get; set; }
         public bool IsActive { get; set; }
     }
+    public class Reviews {
+        public string ReviewDescription { get; set; }
+        public int StarRating { get; set; }
+    }
 }

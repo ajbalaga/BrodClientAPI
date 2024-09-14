@@ -61,6 +61,10 @@ namespace BrodClientAPI.Controller
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.AvailabilityToWork, tradieProfile.AvailabilityToWork));
             }
+            if (!string.IsNullOrEmpty(tradieProfile.CallOutRate) && tradieProfile.CallOutRate != tradie.CallOutRate)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.CallOutRate, tradieProfile.CallOutRate));
+            }
             if (!string.IsNullOrEmpty(tradieProfile.Email) && tradieProfile.Email != tradie.Email)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Email, tradieProfile.Email));
@@ -239,7 +243,7 @@ namespace BrodClientAPI.Controller
         }
 
         [HttpGet("publishedAds")]
-        public IActionResult GetPublishedAds([FromBody] GetPublishedAd getPublishedAd)
+        public IActionResult GetPublishedAds([FromBody] GetPublishedAdByUserID getPublishedAd)
         {
             var publishedJobPost = _context.Services.Find(service => service.UserID == getPublishedAd.UserID && service.IsActive == true).ToList();
 
@@ -247,7 +251,7 @@ namespace BrodClientAPI.Controller
         }
 
         [HttpGet("unpublishedAds")]
-        public IActionResult GetUnpublishedAds([FromBody] GetPublishedAd getunPublishedAd)
+        public IActionResult GetUnpublishedAds([FromBody] GetPublishedAdByUserID getunPublishedAd)
         {
             var publishedJobPost = _context.Services.Find(service => service.UserID == getunPublishedAd.UserID && service.IsActive == false).ToList();
 

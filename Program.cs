@@ -23,15 +23,14 @@ builder.Services.AddScoped<ApiDbContext>(); // Assuming you're using ApiDbContex
 // Add Controllers
 builder.Services.AddControllers();
 
-// Configure CORS
+// Configure CORS to allow any origin, header, and method
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("EnableCORS", builder =>
+    options.AddPolicy("AllowAllCORS", builder =>
     {
-        builder.WithOrigins("https://earningblueprints.com")
+        builder.AllowAnyOrigin()
                .AllowAnyHeader()
-               .AllowAnyMethod()
-               .AllowCredentials();
+               .AllowAnyMethod();
     });
 });
 
@@ -105,7 +104,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
-app.UseCors("EnableCORS");
+app.UseCors("AllowAllCORS");
 
 if (app.Environment.IsDevelopment())
 {
