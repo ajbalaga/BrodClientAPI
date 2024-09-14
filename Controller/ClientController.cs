@@ -25,16 +25,16 @@ namespace BrodClientAPI.Controller
         {
             try
             {
-                var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Client").FirstOrDefault();
-                if (tradie == null)
+                var client = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Client").FirstOrDefault();
+                if (client == null)
                 {
                     return NotFound(new { message = "Client not found" });
                 }
-                return Ok(tradie);
+                return Ok(client);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting Client details", error = ex.Message });
             }
 
         }
@@ -124,7 +124,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
             }
         }
 
@@ -220,7 +220,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
             }
         }
 
@@ -276,11 +276,84 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while adding review to job post", error = ex.Message });
             }
         }
 
+        [HttpPost("HireTradie")]
+        public IActionResult HireTradie([FromBody] HireTradie hireTradieDetails)
+        {
+            try
+            {
+                var client = _context.User.Find(user => user._id == hireTradieDetails.ClientID && user.Role == "Client").FirstOrDefault();
+                if (client == null)
+                {
+                    return NotFound(new { message = "Client not found" });
+                }
+
+                var existingService = _context.Services.Find(service => service._id == hireTradieDetails.ServiceID).FirstOrDefault();
+                if (existingService == null)
+                {
+                    return NotFound(new { message = "Job Post Ad not found" });
+                }
+
+                var jobDetails = new Jobs
+                {
+                    _id = "",
+                    ServiceID = hireTradieDetails.ServiceID,
+                    ClientID = hireTradieDetails.ClientID,
+                    TradieID = existingService.UserID,
+                    Status= hireTradieDetails.Status,
+                    DescriptionServiceNeeded= hireTradieDetails.DescriptionServiceNeeded,
+                    ClientName = $"{client.FirstName} {client.LastName}",
+                    ClientContactNumber = hireTradieDetails.ClientContactNumber,
+                    ClientCity = client.City,
+                    ClientState = client.State,
+                    ClientPostalCode = hireTradieDetails.ClientPostCode,
+                    JobPostAdTitle = existingService.JobAdTitle,
+                    StartDate = hireTradieDetails.StartDate,
+                    CompletionDate = hireTradieDetails.CompletionDate,
+                    ClientBudget = hireTradieDetails.ClientBudget,
+                    BudgetCurrency = hireTradieDetails.BudgetCurrency
+                };
+                var updateDefinitions = new List<UpdateDefinition<Jobs>>();
+                _context.Jobs.InsertOne(jobDetails);
+                
 
 
+                return Ok(new { message = "Job offer submitted successfully" });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while sending job offer", error = ex.Message });
+            }
+        }
+
+        [HttpPut("UpdateJobStatus")]
+        public IActionResult UpdateJobStatus([FromBody] UpdateJobStatus updateJobStatus)
+        {
+            try
+            {
+                var job = _context.User.Find(job => job._id == updateJobStatus.JobID ).FirstOrDefault();
+                if (job == null)
+                {
+                    return NotFound(new { message = "Job not found" });
+                }
+
+                // Update the status
+                var updateDefinition = Builders<Jobs>.Update.Set(u => u.Status, updateJobStatus.Status);
+                _context.Jobs.UpdateOne(user => user._id == updateJobStatus.JobID, updateDefinition);
+
+                return Ok(new { message = "Job status updated successfully" });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
+            }
+
+            return Ok(new { message = "Client profile updated successfully" });
+        }
     }
 }

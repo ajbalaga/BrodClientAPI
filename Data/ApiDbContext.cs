@@ -24,6 +24,8 @@ namespace BrodClientAPI.Data
 
         public IMongoCollection<User> User => _database.GetCollection<User>("User");
         public IMongoCollection<Services> Services => _database.GetCollection<Services>("Services");
+        public IMongoCollection<Reviews> Reviews => _database.GetCollection<Reviews>("Reviews");
+        public IMongoCollection<Jobs> Jobs => _database.GetCollection<Jobs>("Jobs");
 
         public void Initialize()
         {
@@ -32,6 +34,8 @@ namespace BrodClientAPI.Data
                 // Create an index on the Username field
                 User.Indexes.CreateOne(new CreateIndexModel<User>(Builders<User>.IndexKeys.Ascending(u => u._id)));
                 Services.Indexes.CreateOne(new CreateIndexModel<Services>(Builders<Services>.IndexKeys.Ascending(u => u._id)));
+                Reviews.Indexes.CreateOne(new CreateIndexModel<Reviews>(Builders<Reviews>.IndexKeys.Ascending(u => u._id)));
+                Jobs.Indexes.CreateOne(new CreateIndexModel<Jobs>(Builders<Jobs>.IndexKeys.Ascending(u => u._id)));
             }
             catch (Exception ex)
             {

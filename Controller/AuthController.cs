@@ -44,7 +44,7 @@ namespace BrodClientAPI.Controller
                 }
                 catch (Exception ex)
                 {
-                    return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                    return StatusCode(500, new { message = "An error occurred while logging in", error = ex.Message });
                 }
             }
             private string GenerateJwtToken(User user)
@@ -91,7 +91,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while signing up", error = ex.Message });
             }
         }
 
