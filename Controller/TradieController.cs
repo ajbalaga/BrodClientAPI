@@ -13,7 +13,6 @@ namespace BrodClientAPI.Controller
     public class TradieController : ControllerBase
     {
         private readonly ApiDbContext _context;
-
         public TradieController(ApiDbContext context)
         {
             _context = context;
@@ -58,7 +57,11 @@ namespace BrodClientAPI.Controller
             var updateDefinitions = new List<UpdateDefinition<User>>();
 
             // Update fields only if they are provided in tradieProfile
-            
+            if (!string.IsNullOrEmpty(tradieProfile.AvailabilityToWork) && tradieProfile.AvailabilityToWork != tradie.AvailabilityToWork)
+            {
+                updateDefinitions.Add(Builders<User>.Update.Set(u => u.AvailabilityToWork, tradieProfile.AvailabilityToWork));
+            }
+
             if (!string.IsNullOrEmpty(tradieProfile.Email) && tradieProfile.Email != tradie.Email)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Email, tradieProfile.Email));
