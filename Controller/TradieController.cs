@@ -27,23 +27,23 @@ namespace BrodClientAPI.Controller
             return Ok(new { message = "Here are the tasks for employee " + username });
         }
 
-        [HttpGet("myDetails")]
-        public IActionResult GetTradieById([FromBody] OwnProfile getTradieProfile)
-        {
-            try
-            {
-                var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Tradie").FirstOrDefault();
-                if (tradie == null)
-                {
-                    return NotFound(new { message = "Tradie not found" });
-                }
-                return Ok(tradie);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
-            }
-        }
+        //[HttpGet("myDetails")]
+        //public IActionResult GetTradieById([FromBody] OwnProfile getTradieProfile)
+        //{
+        //    try
+        //    {
+        //        var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Tradie").FirstOrDefault();
+        //        if (tradie == null)
+        //        {
+        //            return NotFound(new { message = "Tradie not found" });
+        //        }
+        //        return Ok(tradie);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
+        //    }
+        //}
 
         [HttpPut("update-tradie-profile")]
         public IActionResult UpdateTradieProfile([FromBody] UpdateUserProfile tradieProfile)
@@ -153,7 +153,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting tradie profile details", error = ex.Message });
             }
 
             return Ok(new { message = "Tradie profile updated successfully" });
@@ -240,11 +240,11 @@ namespace BrodClientAPI.Controller
                 var updateDefinition = Builders<User>.Update.Set(u => u.ActiveJobs, activeJob.ActiveJobCount);
                 _context.User.UpdateOne(user => user._id == activeJob.UserID, updateDefinition);
 
-                return Ok(new { message = "Active jobs updated" });
+                return Ok(new { message = "Active jobs count updated" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating active job count", error = ex.Message });
             }
         }
 
@@ -259,7 +259,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting published job post", error = ex.Message });
             }
         }
 
@@ -274,7 +274,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting unpublished job post", error = ex.Message });
             }
         }
 
@@ -292,11 +292,11 @@ namespace BrodClientAPI.Controller
                 var updateDefinition = Builders<Services>.Update.Set(u => u.IsActive, updateJobAdsIsActive.IsActive);
                 _context.Services.UpdateOne(service => service._id == updateJobAdsIsActive.JobID, updateDefinition);
 
-                return Ok(new { message = "Job Ad successfully updated" });
+                return Ok(new { message = "Active jobs count successfully updated" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating active jobs count", error = ex.Message });
             }
         }
 
@@ -314,7 +314,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while getting job post details", error = ex.Message });
             }
         }
 
@@ -401,7 +401,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating job post details", error = ex.Message });
             }
 
             return Ok(new { message = "Job post ad updated successfully" });

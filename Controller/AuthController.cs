@@ -44,7 +44,7 @@ namespace BrodClientAPI.Controller
                 }
                 catch (Exception ex)
                 {
-                    return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                    return StatusCode(500, new { message = "An error occurred while logging in", error = ex.Message });
                 }
             }
             private string GenerateJwtToken(User user)
@@ -91,7 +91,7 @@ namespace BrodClientAPI.Controller
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while signing up", error = ex.Message });
             }
         }
 
@@ -132,6 +132,24 @@ namespace BrodClientAPI.Controller
                 var response = await client.SendEmailAsync(msg);
             }
 
-        }
+            [HttpGet("userDetails")]
+            public IActionResult GetProfileById(string id)
+            {
+                try
+                {
+                    var tradie = _context.User.Find(user => user._id == id).FirstOrDefault();
+                    if (tradie == null)
+                    {
+                        return NotFound(new { message = "Profile not found" });
+                    }
+                    return Ok(tradie);
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
+                }
+            }
+
+    }
     
 }
