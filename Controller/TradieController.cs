@@ -27,23 +27,23 @@ namespace BrodClientAPI.Controller
             return Ok(new { message = "Here are the tasks for employee " + username });
         }
 
-        [HttpGet("myDetails")]
-        public IActionResult GetTradieById([FromBody] OwnProfile getTradieProfile)
-        {
-            try
-            {
-                var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Tradie").FirstOrDefault();
-                if (tradie == null)
-                {
-                    return NotFound(new { message = "Tradie not found" });
-                }
-                return Ok(tradie);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
-            }
-        }
+        //[HttpGet("myDetails")]
+        //public IActionResult GetTradieById([FromBody] OwnProfile getTradieProfile)
+        //{
+        //    try
+        //    {
+        //        var tradie = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Tradie").FirstOrDefault();
+        //        if (tradie == null)
+        //        {
+        //            return NotFound(new { message = "Tradie not found" });
+        //        }
+        //        return Ok(tradie);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
+        //    }
+        //}
 
         [HttpPut("update-tradie-profile")]
         public IActionResult UpdateTradieProfile([FromBody] UpdateUserProfile tradieProfile)

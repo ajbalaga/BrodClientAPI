@@ -20,24 +20,24 @@ namespace BrodClientAPI.Controller
             _context = context;
         }
 
-        [HttpGet("myDetails")]
-        public IActionResult GetClientById([FromBody] OwnProfile getTradieProfile)
-        {
-            try
-            {
-                var client = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Client").FirstOrDefault();
-                if (client == null)
-                {
-                    return NotFound(new { message = "Client not found" });
-                }
-                return Ok(client);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while getting Client details", error = ex.Message });
-            }
+        //[HttpGet("myDetails")]
+        //public IActionResult GetClientById([FromBody] OwnProfile getTradieProfile)
+        //{
+        //    try
+        //    {
+        //        var client = _context.User.Find(user => user._id == getTradieProfile.ID && user.Role == "Client").FirstOrDefault();
+        //        if (client == null)
+        //        {
+        //            return NotFound(new { message = "Client not found" });
+        //        }
+        //        return Ok(client);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while getting Client details", error = ex.Message });
+        //    }
 
-        }
+        //}
 
         [HttpPut("update-profile")]
         public IActionResult UpdateProfile([FromBody] User clientProfile)

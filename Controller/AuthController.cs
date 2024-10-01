@@ -132,6 +132,24 @@ namespace BrodClientAPI.Controller
                 var response = await client.SendEmailAsync(msg);
             }
 
-        }
+            [HttpGet("userDetails")]
+            public IActionResult GetProfileById(string id)
+            {
+                try
+                {
+                    var tradie = _context.User.Find(user => user._id == id).FirstOrDefault();
+                    if (tradie == null)
+                    {
+                        return NotFound(new { message = "Profile not found" });
+                    }
+                    return Ok(tradie);
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
+                }
+            }
+
+    }
     
 }
