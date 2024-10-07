@@ -21,7 +21,7 @@ namespace BrodClientAPI.Models
         public string JobPostAdTitle { get; set; }
         public string StartDate { get; set; }
         public string CompletionDate { get; set; }
-        public string ClientBudget { get; set; }
+        public decimal ClientBudget { get; set; }
         public string BudgetCurrency { get; set; }
 
     }

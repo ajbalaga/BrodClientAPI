@@ -1,8 +1,8 @@
 ﻿namespace BrodClientAPI.Models
 {
-    public class UpdateActiveJobs
+    public class GetJobsByStatus
     {
         public string UserID { get; set; }
-        public int ActiveJobCount { get; set; }
+        public string Status { get; set; }
     }
 }

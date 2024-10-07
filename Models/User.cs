@@ -38,5 +38,7 @@ namespace BrodClientAPI.Models
         public int CompletedJobs { get; set; } = 0;
         public decimal EstimatedEarnings { get; set; }= 0;
         public string CallOutRate { get; set; }
+        public int PublishedAds { get; set; } = 0;
+
     }
 }
