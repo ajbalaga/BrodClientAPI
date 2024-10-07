@@ -215,38 +215,22 @@ namespace BrodClientAPI.Controller
                     return NotFound(new { message = "Job Post Ad already exists" });
                 }
 
-                    _context.Services.InsertOne(jobPost);
-                    return Ok(new { message = "Tradie job post added successfully" });
+                _context.Services.InsertOne(jobPost);
+
+                //add count for published job ad
+                if (jobPost.IsActive == true) {
+                    var addCountJobPublished = new UpdateCount { TradieID = jobPost.UserID , Count = tradie.ActiveJobs+1};
+                    UpdatePublishedAdsCount(addCountJobPublished);
+                }
+                
+                return Ok(new { message = "Tradie job post added successfully" });
                 
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while adding job post", error = ex.Message });
             }
-        }       
-
-        [HttpPost("update-active-jobs-count")]
-        public IActionResult UpdateActiveJobsCount([FromBody] UpdateActiveJobs activeJob)
-        {
-            try
-            {
-                var tradie = _context.User.Find(user => user._id == activeJob.UserID && user.Role == "Tradie").FirstOrDefault();
-                if (tradie == null)
-                {
-                    return NotFound(new { message = "Tradie not found" });
-                }
-
-                // Update the status
-                var updateDefinition = Builders<User>.Update.Set(u => u.ActiveJobs, activeJob.ActiveJobCount);
-                _context.User.UpdateOne(user => user._id == activeJob.UserID, updateDefinition);
-
-                return Ok(new { message = "Active jobs count updated" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating active job count", error = ex.Message });
-            }
-        }
+        }               
 
         [HttpGet("publishedAds")]
         public IActionResult GetPublishedAds([FromBody] GetPublishedAdByUserID getPublishedAd)
@@ -268,7 +252,7 @@ namespace BrodClientAPI.Controller
         {
             try
             {
-                var publishedJobPost = _context.Services.Find(service => service.UserID == getunPublishedAd.UserId && service.IsActive == false).ToList();
+                var publishedJobPost = _context.Services.Find(service => service.UserID == getunPublishedAd.UserId && service.IsActive == false).ToList();               
 
                 return Ok(publishedJobPost);
             }
@@ -398,13 +382,219 @@ namespace BrodClientAPI.Controller
                 var filter = Builders<Services>.Filter.Eq(u => u._id, updatedJobPost._id);
 
                 _context.Services.UpdateOne(filter, updateDefinition);
+
+                
+                var tradie = _context.User.Find(user => user._id == updatedJobPost.UserID && user.Role == "Tradie").FirstOrDefault();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Tradie not found" });
+                }
+                if (updatedJobPost.IsActive == true) // + count for published job ad
+                {
+                    var addCountJobPublished = new UpdateCount { TradieID = updatedJobPost.UserID, Count = tradie.PublishedAds + 1 };
+                    UpdatePublishedAdsCount(addCountJobPublished);
+                }
+                else // -1 count for published job ad
+                {
+                    var jobCount = tradie.PublishedAds == 0 ? 0 : tradie.PublishedAds - 1;
+                    var addCountJobPublished = new UpdateCount { TradieID = updatedJobPost.UserID, Count = jobCount };
+                    UpdatePublishedAdsCount(addCountJobPublished);
+                }
+
+                return Ok(new { message = "Job post ad updated successfully" });
+
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while updating job post details", error = ex.Message });
             }
 
-            return Ok(new { message = "Job post ad updated successfully" });
+            
+        }
+
+        [HttpGet("GetJobsByStatus")]
+        public IActionResult GetFilteredJobs([FromBody] GetJobsByStatus jobsByStatus)
+        {
+            try
+            {
+                // Step 1: Find the client based on UserID and Role
+                var tradie = _context.User
+                    .Find(user => user._id == jobsByStatus.UserID && user.Role.ToLower() == "tradie")
+                    .FirstOrDefault();
+
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Client not found" });
+                }
+
+                // Step 2: Filter jobs based on Status and ClientID
+                var jobFilterBuilder = Builders<Jobs>.Filter;
+                var jobFilter = jobFilterBuilder.Eq(job => job.Status, jobsByStatus.Status) &
+                                jobFilterBuilder.Eq(job => job.TradieID, jobsByStatus.UserID);
+
+                var jobs = _context.Jobs.Find(jobFilter).ToListAsync().Result;
+                if (jobs.Count < 1)
+                {
+                    return NotFound(new { message = "Job/s not found" });
+                }
+
+                return Ok(jobs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
+            }
+        }
+
+        [HttpPut("UpdateJobStatus")]
+        public IActionResult UpdateJobStatus([FromBody] UpdateJobStatus updateJobStatus)
+        {
+            try
+            {
+                var job = _context.Jobs.Find(job => job._id == updateJobStatus.JobID).FirstOrDefault();
+                if (job == null)
+                {
+                    return NotFound(new { message = "Job not found" });
+                }
+               
+                if (updateJobStatus.TradieID.ToLower() == "tradie")
+                {
+                    var tradie = _context.User.Find(user => user._id == updateJobStatus.TradieID && user.Role.ToLower() == "tradie").FirstOrDefault();
+                    if (tradie == null)
+                    {
+                        return NotFound(new { message = "Tradie not found" });
+                    }
+
+                    // Update the status
+                    var updateDefinition = Builders<Jobs>.Update.Set(u => u.Status, updateJobStatus.Status);
+                    _context.Jobs.UpdateOne(user => user._id == updateJobStatus.JobID, updateDefinition);
+
+                    if (updateJobStatus.Status.ToLower() == "in progress")
+                    {
+                        var addCountJobActive = new UpdateCount { TradieID = updateJobStatus.TradieID, Count = tradie.ActiveJobs + 1 };
+                        UpdateActiveJobsCount(addCountJobActive);
+                    }  // add count for active jobs or in progress
+
+                    if (job.Status.ToLower() == "in progress" && updateJobStatus.Status.ToLower() == "cancelled") 
+                    {
+                        var jobCount = tradie.ActiveJobs == 0 ? 0 : tradie.ActiveJobs - 1;
+                        var addCountJobActive = new UpdateCount { TradieID = updateJobStatus.TradieID, Count = jobCount};
+                        UpdateActiveJobsCount(addCountJobActive);
+                    } // from in progress to cancelled
+
+                    if (updateJobStatus.Status.ToLower() == "completed") // from in progress to completed
+                    {
+                        var addCountJobCompleted = new UpdateCount { TradieID = updateJobStatus.TradieID, Count = tradie.CompletedJobs+1 };
+                        UpdateCompletetedJobs(addCountJobCompleted);
+
+                        var earningAmount = Convert.ToDecimal(tradie.EstimatedEarnings) + Convert.ToDecimal(job.ClientBudget);
+                        var addEarning = new UpdateEstimatedEarning { TradieID = updateJobStatus.TradieID, Earning = earningAmount };
+                        UpdateEstimatedEarningOfTradie(addEarning);
+                    } //add count for completed jobs and update earning
+
+                    return Ok(new { message = "Job status updated successfully" });
+                }
+
+                return BadRequest(new { message = "User type not valid and/or check other input details" });
+
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the profile", error = ex.Message });
+            }
+        }
+
+        // estimated earning
+        private IActionResult UpdateEstimatedEarningOfTradie([FromBody] UpdateEstimatedEarning updateEarning)
+        {
+            try
+            {
+                var tradie = _context.User.Find(user => user._id == updateEarning.TradieID && user.Role == "Tradie").FirstOrDefault();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Tradie not found" });
+                }
+
+                // Update the status
+                var updateDefinition = Builders<User>.Update.Set(u => u.EstimatedEarnings, updateEarning.Earning);
+                _context.User.UpdateOne(user => user._id == updateEarning.TradieID, updateDefinition);
+
+                return Ok(new { message = "Earning updated: " + updateEarning.Earning.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating earning", error = ex.Message });
+            }
+        }
+
+        // published ads
+        private IActionResult UpdatePublishedAdsCount([FromBody] UpdateCount updateCount)
+        {
+            try
+            {
+                var tradie = _context.User.Find(user => user._id == updateCount.TradieID && user.Role == "Tradie").FirstOrDefault();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Tradie not found" });
+                }
+
+                // Update the status
+                var updateDefinition = Builders<User>.Update.Set(u => u.PublishedAds, updateCount.Count);
+                _context.User.UpdateOne(user => user._id == updateCount.TradieID, updateDefinition);
+
+                return Ok(new { message = "Published jobs count updated: " + updateCount.Count.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating published job count", error = ex.Message });
+            }
+        }
+
+        // in progress jobs
+        private IActionResult UpdateActiveJobsCount([FromBody] UpdateCount updateCount)
+        {
+            try
+            {
+                var tradie = _context.User.Find(user => user._id == updateCount.TradieID && user.Role == "Tradie").FirstOrDefault();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Tradie not found" });
+                }
+
+                // Update the status
+                var updateDefinition = Builders<User>.Update.Set(u => u.ActiveJobs, updateCount.Count);
+                _context.User.UpdateOne(user => user._id == updateCount.TradieID, updateDefinition);
+
+                return Ok(new { message = "Active jobs count updated: " + updateCount.Count.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating active job count", error = ex.Message });
+            }
+        }
+
+        // completed jobs
+        private IActionResult UpdateCompletetedJobs([FromBody] UpdateCount updateCount)
+        {
+            try
+            {
+                var tradie = _context.User.Find(user => user._id == updateCount.TradieID && user.Role == "Tradie").FirstOrDefault();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Tradie not found" });
+                }
+
+                // Update the status
+                var updateDefinition = Builders<User>.Update.Set(u => u.CompletedJobs, updateCount.Count);
+                _context.User.UpdateOne(user => user._id == updateCount.TradieID, updateDefinition);
+
+                return Ok(new { message = "Completed jobs count updated: " + updateCount.Count.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating completed job count", error = ex.Message });
+            }
         }
 
     }
