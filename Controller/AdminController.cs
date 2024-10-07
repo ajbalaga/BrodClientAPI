@@ -9,7 +9,7 @@ namespace BrodClientAPI.Controller
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "AdminPolicy")]
-    public class AdminController : ControllerBase
+    public class AdminController : ControllerBase 
     {
         private readonly ApiDbContext _context;
 
