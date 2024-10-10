@@ -114,115 +114,115 @@ namespace BrodClientAPI.Controller
             return Ok(new { message = "Client profile updated successfully" });
         }
 
-        [HttpGet("allServices")]
-        public IActionResult GetAllServices()
-        {
-            try
-            {
-                var services = _context.Services.Find(services => true).ToList(); // Fetch all users from MongoDB
-                return Ok(services);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
-            }
-        }
+        //[HttpGet("allServices")]
+        //public IActionResult GetAllServices()
+        //{
+        //    try
+        //    {
+        //        var services = _context.Services.Find(services => true).ToList(); // Fetch all users from MongoDB
+        //        return Ok(services);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
+        //    }
+        //}
 
-        [HttpGet("FilteredServices")]
-        public IActionResult GetFilteredServices([FromBody] JobAdPostFilter filterInput)
-        {
-            try
-            {
-                var filterBuilder = Builders<Services>.Filter;
-                var filter = filterBuilder.Empty; // Start with an empty filter
+        //[HttpGet("FilteredServices")]
+        //public IActionResult GetFilteredServices([FromBody] JobAdPostFilter filterInput)
+        //{
+        //    try
+        //    {
+        //        var filterBuilder = Builders<Services>.Filter;
+        //        var filter = filterBuilder.Empty; // Start with an empty filter
 
-                // Filter by Postcode
-                if (!string.IsNullOrEmpty(filterInput.Postcode))
-                {
-                    filter &= filterBuilder.Eq(s => s.BusinessPostcode, filterInput.Postcode);
-                }
+        //        // Filter by Postcode
+        //        if (!string.IsNullOrEmpty(filterInput.Postcode))
+        //        {
+        //            filter &= filterBuilder.Eq(s => s.BusinessPostcode, filterInput.Postcode);
+        //        }
 
-                // Filter by JobCategory (if multiple categories are provided)
-                if (filterInput.JobCategories != null && filterInput.JobCategories.Count > 0)
-                {
-                    filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
-                }
+        //        // Filter by JobCategory (if multiple categories are provided)
+        //        if (filterInput.JobCategories != null && filterInput.JobCategories.Count > 0)
+        //        {
+        //            filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
+        //        }
 
-                // Filter by Keywords (match JobAdTitle using a case-insensitive regex)
-                if (!string.IsNullOrEmpty(filterInput.Keywords))
-                {
-                    var regexFilter = new BsonRegularExpression(filterInput.Keywords, "i"); // Case-insensitive search
-                    filter &= filterBuilder.Regex(s => s.JobAdTitle, regexFilter);
-                }
-
-
-                // Filter by PricingStartsAt (range between min and max)
-                if (filterInput.PricingStartsMax> filterInput.PricingStartsMin)
-                {
-                    filter &= filterBuilder.Eq(s => s.PricingOption, "Hourly");
-                    filter &= filterBuilder.Gte(s => s.PricingStartsAt, filterInput.PricingStartsMin.ToString()) &
-                              filterBuilder.Lte(s => s.PricingStartsAt, filterInput.PricingStartsMax.ToString());
-                }
-
-                var filteredServices = _context.Services.Find(filter).ToList();
-
-                var userIds = filteredServices.Select(s => s.UserID).Distinct().ToList();
+        //        // Filter by Keywords (match JobAdTitle using a case-insensitive regex)
+        //        if (!string.IsNullOrEmpty(filterInput.Keywords))
+        //        {
+        //            var regexFilter = new BsonRegularExpression(filterInput.Keywords, "i"); // Case-insensitive search
+        //            filter &= filterBuilder.Regex(s => s.JobAdTitle, regexFilter);
+        //        }
 
 
-                var userFilterBuilder = Builders<User>.Filter;
-                var userFilter = userFilterBuilder.In(u => u._id, userIds);
+        //        // Filter by PricingStartsAt (range between min and max)
+        //        if (filterInput.PricingStartsMax> filterInput.PricingStartsMin)
+        //        {
+        //            filter &= filterBuilder.Eq(s => s.PricingOption, "Hourly");
+        //            filter &= filterBuilder.Gte(s => s.PricingStartsAt, filterInput.PricingStartsMin.ToString()) &
+        //                      filterBuilder.Lte(s => s.PricingStartsAt, filterInput.PricingStartsMax.ToString());
+        //        }
 
-                if (filterInput.CallOutRateMax > filterInput.CallOutRateMin)
-                {
-                    userFilter &= userFilterBuilder.Gte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString()) &
-                                  userFilterBuilder.Lte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString());
-                }
+        //        var filteredServices = _context.Services.Find(filter).ToList();
 
-                // Filter by ProximityToWork (min and max range)
-                if (filterInput.ProximityToWorkMax > filterInput.ProximityToWorkMin)
-                {
-                    userFilter &= userFilterBuilder.Gte(u => u.ProximityToWork, filterInput.ProximityToWorkMin.Value.ToString()) &
-                                  userFilterBuilder.Lte(u => u.ProximityToWork, filterInput.ProximityToWorkMax.Value.ToString());
-                }
+        //        var userIds = filteredServices.Select(s => s.UserID).Distinct().ToList();
 
-                // Filter by AvailabilityToWork (multiple answers)
-                if (!String.IsNullOrEmpty(filterInput.AvailabilityToWork[0]) && filterInput.AvailabilityToWork.Count > 0)
-                {
-                    userFilter &= userFilterBuilder.In(u => u.AvailabilityToWork, filterInput.AvailabilityToWork);
-                }
 
-                // Fetch the filtered users that match the user filters
-                var filteredUsers = _context.User.Find(userFilter).ToList();
-                var finalUserIds = filteredUsers.Select(u => u._id).ToList();
+        //        var userFilterBuilder = Builders<User>.Filter;
+        //        var userFilter = userFilterBuilder.In(u => u._id, userIds);
 
-                // Step 4: Filter the services again based on the final list of UserIDs from the User filter
-                var finalServices = filteredServices.Where(s => finalUserIds.Contains(s.UserID)).ToList();
+        //        if (filterInput.CallOutRateMax > filterInput.CallOutRateMin)
+        //        {
+        //            userFilter &= userFilterBuilder.Gte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString()) &
+        //                          userFilterBuilder.Lte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString());
+        //        }
 
-                return Ok(finalServices);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
-            }
-        }
+        //        // Filter by ProximityToWork (min and max range)
+        //        if (filterInput.ProximityToWorkMax > filterInput.ProximityToWorkMin)
+        //        {
+        //            userFilter &= userFilterBuilder.Gte(u => u.ProximityToWork, filterInput.ProximityToWorkMin.Value.ToString()) &
+        //                          userFilterBuilder.Lte(u => u.ProximityToWork, filterInput.ProximityToWorkMax.Value.ToString());
+        //        }
 
-        [HttpGet("JobPostDetails")]
-        public IActionResult GetJobPostDetails([FromBody] OwnProfile serviceProfile)
-        {
-            try
-            {
-                var service = _context.Services.Find(service => service._id == serviceProfile.ID).FirstOrDefault();
-                if (service == null)
-                {
-                    return NotFound(new { message = "Job Ad Post not found" });
-                }
-                return Ok(service);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
-            }
-        }
+        //        // Filter by AvailabilityToWork (multiple answers)
+        //        if (!String.IsNullOrEmpty(filterInput.AvailabilityToWork[0]) && filterInput.AvailabilityToWork.Count > 0)
+        //        {
+        //            userFilter &= userFilterBuilder.In(u => u.AvailabilityToWork, filterInput.AvailabilityToWork);
+        //        }
+
+        //        // Fetch the filtered users that match the user filters
+        //        var filteredUsers = _context.User.Find(userFilter).ToList();
+        //        var finalUserIds = filteredUsers.Select(u => u._id).ToList();
+
+        //        // Step 4: Filter the services again based on the final list of UserIDs from the User filter
+        //        var finalServices = filteredServices.Where(s => finalUserIds.Contains(s.UserID)).ToList();
+
+        //        return Ok(finalServices);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
+        //    }
+        //}
+
+        //[HttpGet("JobPostDetails")]
+        //public IActionResult GetJobPostDetails([FromBody] OwnProfile serviceProfile)
+        //{
+        //    try
+        //    {
+        //        var service = _context.Services.Find(service => service._id == serviceProfile.ID).FirstOrDefault();
+        //        if (service == null)
+        //        {
+        //            return NotFound(new { message = "Job Ad Post not found" });
+        //        }
+        //        return Ok(service);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
+        //    }
+        //}
 
         [HttpPost("AddReviewToJobPost")]
         public IActionResult AddReviewToJobPost([FromBody] AddReviewToJobPostAd reviewDetails)
