@@ -197,7 +197,7 @@ namespace BrodClientAPI.Controller
                     }
 
                     // Filter by JobCategory (if multiple categories are provided)
-                    if (filterInput.JobCategories != null && filterInput.JobCategories.Count > 0)
+                    if (!(filterInput.JobCategories.Any(category => string.IsNullOrWhiteSpace(category))) && filterInput.JobCategories.Count > 0)
                     {
                         filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
                     }
@@ -252,7 +252,7 @@ namespace BrodClientAPI.Controller
                     // Step 4: Filter the services again based on the final list of UserIDs from the User filter
                     var finalServices = filteredServices.Where(s => finalUserIds.Contains(s.UserID)).ToList();
 
-                    return Ok(finalServices);
+                    return Ok(filteredServices);
                 }
                 catch (Exception ex)
                 {
