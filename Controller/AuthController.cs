@@ -12,7 +12,7 @@ using Twilio.Types;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using MongoDB.Bson;
-
+using Google.Apis.Auth;
 
 namespace BrodClientAPI.Controller
 {
@@ -48,6 +48,79 @@ namespace BrodClientAPI.Controller
                     return StatusCode(500, new { message = "An error occurred while logging in", error = ex.Message });
                 }
             }
+            
+            //google login
+            [HttpPost("login/google")]
+            public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginInput googleLogin)
+            {
+                if (string.IsNullOrEmpty(googleLogin.IdToken))
+                    return BadRequest(new { message = "Invalid login request" });
+
+                try
+                {
+                    // Verify Google Token
+                    var payload = await VerifyGoogleTokenAsync(googleLogin.IdToken);
+                    if (payload == null)
+                        return Unauthorized(new { message = "Invalid Google token" });
+
+                    // Retrieve user information from the database
+                    var userEmail = payload.Email;
+                    var user = await _context.User.Find(u => u.Email == userEmail).FirstOrDefaultAsync();
+
+                    // If user does not exist, create a new one
+                    if (user == null)
+                    {
+                        user = new User
+                        {
+                            Email = userEmail,
+                            Username = payload.Name,
+                            FirstName = payload.GivenName,
+                            LastName = payload.FamilyName,
+                            ProfilePicture = payload.Picture,
+                            Role = "Client",  // Default role
+                            Status = "Active", // Default status
+                            ActiveJobs = 0,
+                            PendingOffers = 0,
+                            CompletedJobs = 0,
+                            EstimatedEarnings = 0.0m,
+                            PublishedAds = 0,
+                            // Set other properties with default values if needed
+                        };
+
+                        // Add the new user to the database
+                        await _context.User.InsertOneAsync(user);
+                    }
+
+                    // Generate JWT Token for the user
+                    var token = GenerateJwtToken(user);
+
+                    return Ok(new { token, userId = user._id });
+                }
+                catch (Exception ex)
+                {
+
+                    return StatusCode(500, new { message = "An error occurred while logging in with Google", error = ex.Message });
+                }
+            }
+
+            private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleTokenAsync(string idToken)
+            {
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { _configuration["Google:ClientId"] }
+                };
+
+                try
+                {
+                    return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+                }
+                catch (InvalidJwtException)
+                {
+                    return null; // Token validation failed
+                }
+            }
+
+            ///
             private string GenerateJwtToken(User user)
                 {
                     var tokenHandler = new JwtSecurityTokenHandler();
@@ -197,7 +270,7 @@ namespace BrodClientAPI.Controller
                     }
 
                     // Filter by JobCategory (if multiple categories are provided)
-                    if (filterInput.JobCategories != null && filterInput.JobCategories.Count > 0)
+                    if (!(filterInput.JobCategories.Any(category => string.IsNullOrWhiteSpace(category))) && filterInput.JobCategories.Count > 0)
                     {
                         filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
                     }
@@ -252,7 +325,7 @@ namespace BrodClientAPI.Controller
                     // Step 4: Filter the services again based on the final list of UserIDs from the User filter
                     var finalServices = filteredServices.Where(s => finalUserIds.Contains(s.UserID)).ToList();
 
-                    return Ok(finalServices);
+                    return Ok(filteredServices);
                 }
                 catch (Exception ex)
                 {
