@@ -31,7 +31,7 @@ namespace BrodClientAPI.Models
         public string IGAccount { get; set; }
         public List<string> Services { get; set; }
         public string ProfilePicture { get; set; } // Base64 string for profile picture
-        public List<CertificationFile> CertificationFilesUploaded { get; set; } // List of Base64 strings for certification files
+        public List<string> CertificationFilesUploaded { get; set; }// List of Base64 strings for certification files
         public string AvailabilityToWork { get; set; }
         public int ActiveJobs { get; set; } = 0;
         public int PendingOffers { get; set; } = 0;
@@ -42,10 +42,10 @@ namespace BrodClientAPI.Models
 
     }
 
-    public class CertificationFile
-    {
-        public string FileName { get; set; }
-        public string Base64 { get; set; }
-    }
+    //public class CertificationFile
+    //{
+    //    public string FileName { get; set; } = "aa";
+    //    public string Base64 { get; set; } = "aa";
+    //}
 
 }
