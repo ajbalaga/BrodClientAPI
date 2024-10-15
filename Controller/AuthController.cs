@@ -34,7 +34,7 @@ namespace BrodClientAPI.Controller
             {
                 try
                 {
-                    var allUsers = _context.User.Find(_ => true).ToList();
+                    //var allUsers = _context.User.Find(_ => true).ToList();
                     var user = _context.User.Find(u => u.Email == login.Email && u.Password == login.Password).FirstOrDefault();
 
                     if (user == null)
