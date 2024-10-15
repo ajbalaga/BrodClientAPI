@@ -18,147 +18,145 @@ namespace BrodClientAPI.Controller
 {
         [ApiController]
         [Route("api/[controller]")]
-        public class AuthController : ControllerBase
+    public class AuthController : ControllerBase
+    {
+        private readonly ApiDbContext _context;
+        private readonly IConfiguration _configuration;
+
+        public AuthController(ApiDbContext context, IConfiguration configuration)
         {
-            private readonly ApiDbContext _context;
-            private readonly IConfiguration _configuration;
+            _context = context;
+            _configuration = configuration;
+        }
 
-            public AuthController(ApiDbContext context, IConfiguration configuration)
-                {
-                _context = context;
-                _configuration = configuration;
-            }
-
-            [HttpPost("login")]
-            public IActionResult Login([FromBody] LoginInput login)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginInput login)
+        {
+            try
             {
-                try
-                {
-                    var allUsers = _context.User.Find(_ => true).ToList();
-                    var user = _context.User.Find(u => u.Email == login.Email && u.Password == login.Password).FirstOrDefault();
+                var allUsers = await _context.User.Find(_ => true).ToListAsync(); // Asynchronously fetch all users
+                var user = await _context.User.Find(u => u.Email == login.Email && u.Password == login.Password).FirstOrDefaultAsync();
 
-                    if (user == null)
-                        return Unauthorized();
+                if (user == null)
+                    return Unauthorized();
 
-                    var token = GenerateJwtToken(user);
-                    return Ok(new { token, userId = user._id });
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { message = "An error occurred while logging in", error = ex.Message });
-                }
+                var token = GenerateJwtToken(user);
+                return Ok(new { token, userId = user._id });
             }
-            
-            //google login
-            [HttpPost("login/google")]
-            public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginInput googleLogin)
+            catch (Exception ex)
             {
-                if (string.IsNullOrEmpty(googleLogin.IdToken))
-                    return BadRequest(new { message = "Invalid login request" });
+                return StatusCode(500, new { message = "An error occurred while logging in", error = ex.Message });
+            }
+        }
 
-                try
+        // Google login
+        [HttpPost("login/google")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginInput googleLogin)
+        {
+            if (string.IsNullOrEmpty(googleLogin.IdToken))
+                return BadRequest(new { message = "Invalid login request" });
+
+            try
+            {
+                // Verify Google Token
+                var payload = await VerifyGoogleTokenAsync(googleLogin.IdToken);
+                if (payload == null)
+                    return Unauthorized(new { message = "Invalid Google token" });
+
+                // Retrieve user information from the database
+                var userEmail = payload.Email;
+                var user = await _context.User.Find(u => u.Email == userEmail).FirstOrDefaultAsync();
+
+                // If user does not exist, create a new one
+                if (user == null)
                 {
-                    // Verify Google Token
-                    var payload = await VerifyGoogleTokenAsync(googleLogin.IdToken);
-                    if (payload == null)
-                        return Unauthorized(new { message = "Invalid Google token" });
-
-                    // Retrieve user information from the database
-                    var userEmail = payload.Email;
-                    var user = await _context.User.Find(u => u.Email == userEmail).FirstOrDefaultAsync();
-
-                    // If user does not exist, create a new one
-                    if (user == null)
+                    user = new User
                     {
-                        user = new User
-                        {
-                            Email = userEmail,
-                            Username = payload.Name,
-                            FirstName = payload.GivenName,
-                            LastName = payload.FamilyName,
-                            ProfilePicture = payload.Picture,
-                            Role = "Client",  // Default role
-                            Status = "Active", // Default status
-                            ActiveJobs = 0,
-                            PendingOffers = 0,
-                            CompletedJobs = 0,
-                            EstimatedEarnings = 0.0m,
-                            PublishedAds = 0,
-                            // Set other properties with default values if needed
-                        };
-
-                        // Add the new user to the database
-                        await _context.User.InsertOneAsync(user);
-                    }
-
-                    // Generate JWT Token for the user
-                    var token = GenerateJwtToken(user);
-
-                    return Ok(new { token, userId = user._id });
-                }
-                catch (Exception ex)
-                {
-
-                    return StatusCode(500, new { message = "An error occurred while logging in with Google", error = ex.Message });
-                }
-            }
-
-            private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleTokenAsync(string idToken)
-            {
-                var settings = new GoogleJsonWebSignature.ValidationSettings
-                {
-                    Audience = new[] { _configuration["Google:ClientId"] }
-                };
-
-                try
-                {
-                    return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
-                }
-                catch (InvalidJwtException)
-                {
-                    return null; // Token validation failed
-                }
-            }
-
-            ///
-            private string GenerateJwtToken(User user)
-                {
-                    var tokenHandler = new JwtSecurityTokenHandler();
-                    var secretKey = _configuration["JwtSettings:SecretKey"];
-                    var issuer = _configuration["JwtSettings:Issuer"];
-                    var audience = _configuration["JwtSettings:Audience"];
-
-                    var key = Encoding.ASCII.GetBytes(secretKey);
-
-                    var tokenDescriptor = new SecurityTokenDescriptor
-                    {
-                        Subject = new ClaimsIdentity(new[]
-                        {
-                        new Claim(ClaimTypes.Name, user.Username),
-                        new Claim(ClaimTypes.Role, user.Role)
-                    }),
-                        Expires = DateTime.UtcNow.AddHours(1),
-                        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                        Issuer = issuer,
-                        Audience = audience
+                        Email = userEmail,
+                        Username = payload.Name,
+                        FirstName = payload.GivenName,
+                        LastName = payload.FamilyName,
+                        ProfilePicture = payload.Picture,
+                        Role = "Client",  // Default role
+                        Status = "Active", // Default status
+                        ActiveJobs = 0,
+                        PendingOffers = 0,
+                        CompletedJobs = 0,
+                        EstimatedEarnings = 0.0m,
+                        PublishedAds = 0,
+                        // Set other properties with default values if needed
                     };
 
-                    var token = tokenHandler.CreateToken(tokenDescriptor);
-                    return tokenHandler.WriteToken(token);
+                    // Add the new user to the database
+                    await _context.User.InsertOneAsync(user);
                 }
 
-            [HttpPost("signup")]
-            public async Task<IActionResult> Signup([FromBody] User userSignupDto)
+                // Generate JWT Token for the user
+                var token = GenerateJwtToken(user);
+
+                return Ok(new { token, userId = user._id });
+            }
+            catch (Exception ex)
             {
+                return StatusCode(500, new { message = "An error occurred while logging in with Google", error = ex.Message });
+            }
+        }
+
+        private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleTokenAsync(string idToken)
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { _configuration["Google:ClientId"] }
+            };
+
+            try
+            {
+                return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+            }
+            catch (InvalidJwtException)
+            {
+                return null; // Token validation failed
+            }
+        }
+
+        private string GenerateJwtToken(User user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var secretKey = _configuration["JwtSettings:SecretKey"];
+            var issuer = _configuration["JwtSettings:Issuer"];
+            var audience = _configuration["JwtSettings:Audience"];
+
+            var key = Encoding.ASCII.GetBytes(secretKey);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
+            }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = issuer,
+                Audience = audience
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
+
+        [HttpPost("signup")]
+        public async Task<IActionResult> Signup([FromBody] User userSignupDto)
+        {
             try
             {
                 // Check if the user already exists
-                var existingUser = _context.User.Find(u => u.Email == userSignupDto.Email).FirstOrDefault();
+                var existingUser = await _context.User.Find(u => u.Email == userSignupDto.Email).FirstOrDefaultAsync();
                 if (existingUser != null)
                     return BadRequest("User already exists");
 
                 // Add the new user to the database
-                _context.User.InsertOne(userSignupDto);
+                await _context.User.InsertOneAsync(userSignupDto);
 
                 // Return a success response
                 return Ok(new { message = "Signup successful" });
@@ -169,170 +167,139 @@ namespace BrodClientAPI.Controller
             }
         }
 
-            private string HashPassword(string password)
+        private string HashPassword(string password)
+        {
+            // Add your password hashing logic here, e.g., using BCrypt or another hashing algorithm.
+            return password; // Replace this with the actual hashed password.
+        }
+
+        // For OTP login and signup
+        private void SendSmsOtp(string phoneNumber, string otp)
+        {
+            var acctsid = _configuration["Twilio:ACCOUNT_SID"];
+            var token = _configuration["Twilio:AUTH_TOKEN"];
+
+            TwilioClient.Init(acctsid, token);
+
+            var message = MessageResource.Create(
+                body: $"Your OTP code is {otp}",
+                from: new PhoneNumber("Your Twilio Number"),
+                to: new PhoneNumber(phoneNumber)
+            );
+        }
+
+        private async Task SendEmailOtp(string emailAddress, string otp)
+        {
+            var apikey = _configuration["SendGrid:API_KEY"];
+            var email = _configuration["SendGrid:Email"];
+            var appName = _configuration["SendGrid:AppName"];
+
+            var client = new SendGridClient(apikey);
+            var from = new EmailAddress(email, appName);
+            var subject = "Your OTP Code";
+            var to = new EmailAddress(emailAddress);
+            var plainTextContent = $"Your OTP code is {otp}";
+            var htmlContent = $"<strong>Your OTP code is {otp}</strong>";
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+            var response = await client.SendEmailAsync(msg);
+        }
+
+        [HttpGet("userDetails")]
+        public async Task<IActionResult> GetProfileById(string id)
+        {
+            try
             {
-                // Add your password hashing logic here, e.g., using BCrypt or another hashing algorithm.
-                return password; // Replace this with the actual hashed password.
+                var tradie = await _context.User.Find(user => user._id == id).FirstOrDefaultAsync();
+                if (tradie == null)
+                {
+                    return NotFound(new { message = "Profile not found" });
+                }
+                return Ok(tradie);
             }
-
-            //for OTP login and signup
-            private void SendSmsOtp(string phoneNumber, string otp)
+            catch (Exception ex)
             {
-                var acctsid = _configuration["Twilio:ACCOUNT_SID"];
-                var token = _configuration["Twilio:AUTH_TOKEN"];
-
-                TwilioClient.Init(acctsid, token);
-
-                var message = MessageResource.Create(
-                    body: $"Your OTP code is {otp}",
-                    from: new PhoneNumber("Your Twilio Number"),
-                    to: new PhoneNumber(phoneNumber)
-                );
+                return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
             }
+        }
 
-            private async Task SendEmailOtp(string emailAddress, string otp)
+        [HttpGet("allServices")]
+        public async Task<IActionResult> GetAllServices()
+        {
+            try
             {
-                var apikey = _configuration["SendGrid:API_KEY"];
-                var email = _configuration["SendGrid:Email"];
-                var appName = _configuration["SendGrid:AppName"];
-
-                var client = new SendGridClient(apikey);
-                var from = new EmailAddress(email, appName);
-                var subject = "Your OTP Code";
-                var to = new EmailAddress(emailAddress);
-                var plainTextContent = $"Your OTP code is {otp}";
-                var htmlContent = $"<strong>Your OTP code is {otp}</strong>";
-                var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
-                var response = await client.SendEmailAsync(msg);
+                var services = await _context.Services.Find(services => true).ToListAsync(); // Asynchronously fetch all services from MongoDB
+                return Ok(services);
             }
-
-            [HttpGet("userDetails")]
-            public IActionResult GetProfileById(string id)
+            catch (Exception ex)
             {
-                try
-                {
-                    var tradie = _context.User.Find(user => user._id == id).FirstOrDefault();
-                    if (tradie == null)
-                    {
-                        return NotFound(new { message = "Profile not found" });
-                    }
-                    return Ok(tradie);
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { message = "An error occurred while getting your profile details", error = ex.Message });
-                }
+                return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
             }
+        }
 
-            [HttpGet("allServices")]
-            public IActionResult GetAllServices()
+        [HttpGet("JobPostDetails")]
+        public async Task<IActionResult> GetJobPostDetails([FromBody] OwnProfile serviceProfile)
+        {
+            try
             {
-                try
+                var service = await _context.Services.Find(service => service._id == serviceProfile.ID).FirstOrDefaultAsync();
+                if (service == null)
                 {
-                    var services = _context.Services.Find(services => true).ToList(); // Fetch all users from MongoDB
-                    return Ok(services);
+                    return NotFound(new { message = "Job Ad Post not found" });
                 }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
-                }
+                return Ok(service);
             }
-
-            [HttpGet("JobPostDetails")]
-            public IActionResult GetJobPostDetails([FromBody] OwnProfile serviceProfile)
+            catch (Exception ex)
             {
-                try
-                {
-                    var service = _context.Services.Find(service => service._id == serviceProfile.ID).FirstOrDefault();
-                    if (service == null)
-                    {
-                        return NotFound(new { message = "Job Ad Post not found" });
-                    }
-                    return Ok(service);
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
-                }
+                return StatusCode(500, new { message = "An error occurred while getting job post", error = ex.Message });
             }
-            [HttpGet("FilteredServices")]
-            public IActionResult GetFilteredServices([FromBody] JobAdPostFilter filterInput)
+        }
+
+        [HttpGet("FilteredServices")]
+        public async Task<IActionResult> GetFilteredServices([FromBody] JobAdPostFilter filterInput)
+        {
+            try
             {
-                try
+                var filterBuilder = Builders<Services>.Filter;
+                var filter = filterBuilder.Empty; // Start with an empty filter
+
+                // Filter by Postcode
+                if (!string.IsNullOrEmpty(filterInput.Postcode))
                 {
-                    var filterBuilder = Builders<Services>.Filter;
-                    var filter = filterBuilder.Empty; // Start with an empty filter
-
-                    // Filter by Postcode
-                    if (!string.IsNullOrEmpty(filterInput.Postcode))
-                    {
-                        filter &= filterBuilder.Eq(s => s.BusinessPostcode, filterInput.Postcode);
-                    }
-
-                    // Filter by JobCategory (if multiple categories are provided)
-                    if (!(filterInput.JobCategories.Any(category => string.IsNullOrWhiteSpace(category))) && filterInput.JobCategories.Count > 0)
-                    {
-                        filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
-                    }
-
-                    // Filter by Keywords (match JobAdTitle using a case-insensitive regex)
-                    if (!string.IsNullOrEmpty(filterInput.Keywords))
-                    {
-                        var regexFilter = new BsonRegularExpression(filterInput.Keywords, "i"); // Case-insensitive search
-                        filter &= filterBuilder.Regex(s => s.JobAdTitle, regexFilter);
-                    }
-
-
-                    // Filter by PricingStartsAt (range between min and max)
-                    if (filterInput.PricingStartsMax > filterInput.PricingStartsMin)
-                    {
-                        filter &= filterBuilder.Eq(s => s.PricingOption, "Hourly");
-                        filter &= filterBuilder.Gte(s => s.PricingStartsAt, filterInput.PricingStartsMin.ToString()) &
-                                  filterBuilder.Lte(s => s.PricingStartsAt, filterInput.PricingStartsMax.ToString());
-                    }
-
-                    var filteredServices = _context.Services.Find(filter).ToList();
-
-                    var userIds = filteredServices.Select(s => s.UserID).Distinct().ToList();
-
-
-                    var userFilterBuilder = Builders<User>.Filter;
-                    var userFilter = userFilterBuilder.In(u => u._id, userIds);
-
-                    if (filterInput.CallOutRateMax > filterInput.CallOutRateMin)
-                    {
-                        userFilter &= userFilterBuilder.Gte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString()) &
-                                      userFilterBuilder.Lte(u => u.CallOutRate, filterInput.CallOutRateMin.Value.ToString());
-                    }
-
-                    // Filter by ProximityToWork (min and max range)
-                    if (filterInput.ProximityToWorkMax > filterInput.ProximityToWorkMin)
-                    {
-                        userFilter &= userFilterBuilder.Gte(u => u.ProximityToWork, filterInput.ProximityToWorkMin.Value.ToString()) &
-                                      userFilterBuilder.Lte(u => u.ProximityToWork, filterInput.ProximityToWorkMax.Value.ToString());
-                    }
-
-                    // Filter by AvailabilityToWork (multiple answers)
-                    if (!String.IsNullOrEmpty(filterInput.AvailabilityToWork[0]) && filterInput.AvailabilityToWork.Count > 0)
-                    {
-                        userFilter &= userFilterBuilder.In(u => u.AvailabilityToWork, filterInput.AvailabilityToWork);
-                    }
-
-                    // Fetch the filtered users that match the user filters
-                    var filteredUsers = _context.User.Find(userFilter).ToList();
-                    var finalUserIds = filteredUsers.Select(u => u._id).ToList();
-
-                    // Step 4: Filter the services again based on the final list of UserIDs from the User filter
-                    var finalServices = filteredServices.Where(s => finalUserIds.Contains(s.UserID)).ToList();
-
-                    return Ok(filteredServices);
+                    filter &= filterBuilder.Eq(s => s.BusinessPostcode, filterInput.Postcode);
                 }
-                catch (Exception ex)
+
+                // Filter by JobCategory (if multiple categories are provided)
+                if (!(filterInput.JobCategories.Any(category => string.IsNullOrWhiteSpace(category))) && filterInput.JobCategories.Count > 0)
                 {
-                    return StatusCode(500, new { message = "An error occurred while retrieving services", error = ex.Message });
+                    filter &= filterBuilder.In(s => s.JobCategory, filterInput.JobCategories);
                 }
+
+                // Filter by Keywords (match JobAdTitle using a case-insensitive regex)
+                if (!string.IsNullOrEmpty(filterInput.Keywords))
+                {
+                    var regexFilter = new BsonRegularExpression(filterInput.Keywords, "i"); // Case-insensitive search
+                    filter &= filterBuilder.Regex(s => s.JobAdTitle, regexFilter);
+                }
+
+                // Filter by PricingStartsAt (range between min and max)
+                if (filterInput.PricingStartsMax > filterInput.PricingStartsMin)
+                {
+                    filter &= filterBuilder.Eq(s => s.PricingOption, "Hourly") &
+                              filterBuilder.Gte(s => s.PricingStartsAt, filterInput.PricingStartsMin.ToString()) &
+                              filterBuilder.Lte(s => s.PricingStartsAt, filterInput.PricingStartsMax.ToString());
+                }
+
+                // Fetch filtered services
+                var filteredServices = await _context.Services.Find(filter).ToListAsync();
+
+                return Ok(filteredServices);
             }
-
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving filtered services", error = ex.Message });
+            }
+        }
     }
-    
+
+
 }

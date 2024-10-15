@@ -21,4 +21,7 @@
     <PackageReference Include="Twilio" Version="7.3.0" />
   </ItemGroup>
 
+	<ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
+  </ItemGroup>
 </Project>
