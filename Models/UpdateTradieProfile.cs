@@ -30,7 +30,7 @@
         public string FacebookAccount { get; set; }
         public string IGAccount { get; set; }
         public string ProfilePicture { get; set; } // Base64 string for profile picture
-        public List<string> CertificationFilesUploaded { get; set; } // List of Base64 strings for certification files
+        public List<CertificationFile> CertificationFilesUploaded { get; set; } // List of Base64 strings for certification files
         public List<string> Services { get; set; }
         public string CallOutRate { get; set; }
     }
