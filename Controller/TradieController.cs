@@ -4,6 +4,7 @@ using BrodClientAPI.Data;
 using BrodClientAPI.Models;
 using MongoDB.Driver;
 using System.Diagnostics;
+using System.Linq;
 
 namespace BrodClientAPI.Controller
 {
@@ -118,10 +119,11 @@ namespace BrodClientAPI.Controller
                 if (tradieProfile.CertificationFilesUploaded != null)
                 {
                     // Ensure tradie.Services is initialized (default to empty list if null)
-                    var currentCertifications = tradie.CertificationFilesUploaded ?? new List<string>();
+                    var currentCertifications = tradie.CertificationFilesUploaded ?? new List<CertificationFile>();
 
-                    // Compare lists considering possible null values
-                    if (!tradieProfile.CertificationFilesUploaded.SequenceEqual(currentCertifications))
+                    // Compare lists considering possible null values and object equality
+                    if (tradieProfile.CertificationFilesUploaded != null &&
+                        !tradieProfile.CertificationFilesUploaded.SequenceEqual(currentCertifications))
                     {
                         updateDefinitions.Add(Builders<User>.Update.Set(u => u.CertificationFilesUploaded, tradieProfile.CertificationFilesUploaded));
                     }

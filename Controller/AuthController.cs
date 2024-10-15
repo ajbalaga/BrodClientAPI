@@ -12,7 +12,7 @@ using Twilio.Types;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using MongoDB.Bson;
-using Google.Apis.Auth;
+//using Google.Apis.Auth;
 
 namespace BrodClientAPI.Controller
 {
@@ -50,75 +50,75 @@ namespace BrodClientAPI.Controller
             }
             
             //google login
-            [HttpPost("login/google")]
-            public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginInput googleLogin)
-            {
-                if (string.IsNullOrEmpty(googleLogin.IdToken))
-                    return BadRequest(new { message = "Invalid login request" });
+            //[HttpPost("login/google")]
+            //public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginInput googleLogin)
+            //{
+            //    if (string.IsNullOrEmpty(googleLogin.IdToken))
+            //        return BadRequest(new { message = "Invalid login request" });
 
-                try
-                {
-                    // Verify Google Token
-                    var payload = await VerifyGoogleTokenAsync(googleLogin.IdToken);
-                    if (payload == null)
-                        return Unauthorized(new { message = "Invalid Google token" });
+            //    try
+            //    {
+            //        // Verify Google Token
+            //        var payload = await VerifyGoogleTokenAsync(googleLogin.IdToken);
+            //        if (payload == null)
+            //            return Unauthorized(new { message = "Invalid Google token" });
 
-                    // Retrieve user information from the database
-                    var userEmail = payload.Email;
-                    var user = await _context.User.Find(u => u.Email == userEmail).FirstOrDefaultAsync();
+            //        // Retrieve user information from the database
+            //        var userEmail = payload.Email;
+            //        var user = await _context.User.Find(u => u.Email == userEmail).FirstOrDefaultAsync();
 
-                    // If user does not exist, create a new one
-                    if (user == null)
-                    {
-                        user = new User
-                        {
-                            Email = userEmail,
-                            Username = payload.Name,
-                            FirstName = payload.GivenName,
-                            LastName = payload.FamilyName,
-                            ProfilePicture = payload.Picture,
-                            Role = "Client",  // Default role
-                            Status = "Active", // Default status
-                            ActiveJobs = 0,
-                            PendingOffers = 0,
-                            CompletedJobs = 0,
-                            EstimatedEarnings = 0.0m,
-                            PublishedAds = 0,
-                            // Set other properties with default values if needed
-                        };
+            //        // If user does not exist, create a new one
+            //        if (user == null)
+            //        {
+            //            user = new User
+            //            {
+            //                Email = userEmail,
+            //                Username = payload.Name,
+            //                FirstName = payload.GivenName,
+            //                LastName = payload.FamilyName,
+            //                ProfilePicture = payload.Picture,
+            //                Role = "Client",  // Default role
+            //                Status = "Active", // Default status
+            //                ActiveJobs = 0,
+            //                PendingOffers = 0,
+            //                CompletedJobs = 0,
+            //                EstimatedEarnings = 0.0m,
+            //                PublishedAds = 0,
+            //                // Set other properties with default values if needed
+            //            };
 
-                        // Add the new user to the database
-                        await _context.User.InsertOneAsync(user);
-                    }
+            //            // Add the new user to the database
+            //            await _context.User.InsertOneAsync(user);
+            //        }
 
-                    // Generate JWT Token for the user
-                    var token = GenerateJwtToken(user);
+            //        // Generate JWT Token for the user
+            //        var token = GenerateJwtToken(user);
 
-                    return Ok(new { token, userId = user._id });
-                }
-                catch (Exception ex)
-                {
+            //        return Ok(new { token, userId = user._id });
+            //    }
+            //    catch (Exception ex)
+            //    {
 
-                    return StatusCode(500, new { message = "An error occurred while logging in with Google", error = ex.Message });
-                }
-            }
+            //        return StatusCode(500, new { message = "An error occurred while logging in with Google", error = ex.Message });
+            //    }
+            //}
 
-            private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleTokenAsync(string idToken)
-            {
-                var settings = new GoogleJsonWebSignature.ValidationSettings
-                {
-                    Audience = new[] { _configuration["Google:ClientId"] }
-                };
+            //private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleTokenAsync(string idToken)
+            //{
+            //    var settings = new GoogleJsonWebSignature.ValidationSettings
+            //    {
+            //        Audience = new[] { _configuration["Google:ClientId"] }
+            //    };
 
-                try
-                {
-                    return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
-                }
-                catch (InvalidJwtException)
-                {
-                    return null; // Token validation failed
-                }
-            }
+            //    try
+            //    {
+            //        return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+            //    }
+            //    catch (InvalidJwtException)
+            //    {
+            //        return null; // Token validation failed
+            //    }
+            //}
 
             ///
             private string GenerateJwtToken(User user)
@@ -147,9 +147,9 @@ namespace BrodClientAPI.Controller
                     return tokenHandler.WriteToken(token);
                 }
 
-            [HttpPost("signup")]
-            public async Task<IActionResult> Signup([FromBody] User userSignupDto)
-            {
+        [HttpPost("signup")]
+        public IActionResult Signup([FromBody] User userSignupDto)
+        {
             try
             {
                 // Check if the user already exists
@@ -169,7 +169,8 @@ namespace BrodClientAPI.Controller
             }
         }
 
-            private string HashPassword(string password)
+
+        private string HashPassword(string password)
             {
                 // Add your password hashing logic here, e.g., using BCrypt or another hashing algorithm.
                 return password; // Replace this with the actual hashed password.
