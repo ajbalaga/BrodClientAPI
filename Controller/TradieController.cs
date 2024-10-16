@@ -5,6 +5,7 @@ using BrodClientAPI.Models;
 using MongoDB.Driver;
 using System.Diagnostics;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace BrodClientAPI.Controller
 {
@@ -60,6 +61,35 @@ namespace BrodClientAPI.Controller
                 var updateDefinitions = new List<UpdateDefinition<User>>();
 
                 // Update fields only if they are provided in tradieProfile
+                //first and last name, business name, business postcode, type of work, australian number, contact number at certificates
+                if (!string.IsNullOrEmpty(tradieProfile.FirstName) && tradieProfile.FirstName != tradie.FirstName)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.FirstName, tradieProfile.FirstName));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.LastName) && tradieProfile.FirstName != tradie.LastName)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.LastName, tradieProfile.LastName));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.RegisteredBusinessName) && tradieProfile.RegisteredBusinessName != tradie.RegisteredBusinessName)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.RegisteredBusinessName, tradieProfile.RegisteredBusinessName));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.BusinessPostCode) && tradieProfile.BusinessPostCode != tradie.BusinessPostCode)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.BusinessPostCode, tradieProfile.BusinessPostCode));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.TypeofWork) && tradieProfile.TypeofWork != tradie.TypeofWork)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.TypeofWork, tradieProfile.TypeofWork));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.AustralianBusinessNumber) && tradieProfile.AustralianBusinessNumber != tradie.AustralianBusinessNumber)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.AustralianBusinessNumber, tradieProfile.AustralianBusinessNumber));
+                }
+                if (!string.IsNullOrEmpty(tradieProfile.ContactNumber) && tradieProfile.ContactNumber != tradie.ContactNumber)
+                {
+                    updateDefinitions.Add(Builders<User>.Update.Set(u => u.ContactNumber, tradieProfile.ContactNumber));
+                }
                 if (!string.IsNullOrEmpty(tradieProfile.AvailabilityToWork) && tradieProfile.AvailabilityToWork != tradie.AvailabilityToWork)
                 {
                     updateDefinitions.Add(Builders<User>.Update.Set(u => u.AvailabilityToWork, tradieProfile.AvailabilityToWork));
@@ -107,15 +137,11 @@ namespace BrodClientAPI.Controller
                 if (!string.IsNullOrEmpty(tradieProfile.ContactNumber) && tradieProfile.ContactNumber != tradieProfile.ContactNumber)
                 {
                     updateDefinitions.Add(Builders<User>.Update.Set(u => u.ContactNumber, tradieProfile.ContactNumber));
-                }
-
-                // Update Profile Picture if provided
+                }                
                 if (!string.IsNullOrEmpty(tradieProfile.ProfilePicture) && tradieProfile.ProfilePicture != tradie.ProfilePicture)
                 {
                     updateDefinitions.Add(Builders<User>.Update.Set(u => u.ProfilePicture, tradieProfile.ProfilePicture));
                 }
-
-                // Handle the update of Certifications
                 if (tradieProfile.CertificationFilesUploaded != null)
                 {
                     // Ensure tradie.Services is initialized (default to empty list if null)
@@ -127,9 +153,6 @@ namespace BrodClientAPI.Controller
                         updateDefinitions.Add(Builders<User>.Update.Set(u => u.CertificationFilesUploaded, tradieProfile.CertificationFilesUploaded));
                     }
                 }
-
-
-                // Handle the update of services
                 if (tradieProfile.Services != null)
                 {
                     // Ensure tradie.Services is initialized (default to empty list if null)
